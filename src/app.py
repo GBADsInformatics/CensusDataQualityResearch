@@ -20,7 +20,7 @@ from PIL import Image
 
 
 # Get app base URL
-BASE_URL = os.getenv('BASE_URL','')
+BASE_URL = os.getenv('BASE_URL','/')
 
 countries = ["Ethiopia", "Canada", "USA", "Ireland", "India", "Brazil", "Botswana", "Egypt", "South Africa", "Indonesia", "China", "Australia", "NewZealand", "Japan", "Mexico", "Argentina", "Chile"]
 species   = ["Cattle", "Sheep", "Goats", "Pigs", "Chickens"]
