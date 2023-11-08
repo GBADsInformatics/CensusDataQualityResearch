@@ -16,6 +16,8 @@ import plotly.graph_objects as go
 import API_helpers.helperFunctions as helperFunctions
 import plotly.figure_factory as ff
 from flask import Flask, redirect
+from PIL import Image
+
 
 # Get app base URL
 BASE_URL = os.getenv('BASE_URL','')
@@ -31,6 +33,7 @@ app.config["suppress_callback_exceptions"] = True
 app.title = "GBADs Informatics User Vizualizer"
 
 app.layout = html.Div(children=[
+    html.Img(src=Image.open("images/logo.png"), style={'width': '25%', 'display': 'inline-block', "align-items": "left" }),
     dcc.Tabs(id="tabs", value='genDataViewer', children=[
         dcc.Tab(label='General Data View', value='genDataViewer'),
         dcc.Tab(label='Polynomial Regression', value='polyRegress'),
