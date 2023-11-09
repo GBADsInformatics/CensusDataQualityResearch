@@ -33,7 +33,7 @@ app.config["suppress_callback_exceptions"] = True
 app.title = "GBADs Informatics User Vizualizer"
 
 app.layout = html.Div(children=[
-    html.Img(src=Image.open("images/logo.png"), style={'width': '25%', 'display': 'inline-block', "align-items": "left" }),
+    html.Img(src=os.environ.get("BASE_URL", "") + "src/images/logo.png", style={'width': '25%', 'display': 'inline-block', "align-items": "left" }),
     dcc.Tabs(id="tabs", value='genDataViewer', children=[
         dcc.Tab(label='General Data View', value='genDataViewer'),
         dcc.Tab(label='Polynomial Regression', value='polyRegress'),
