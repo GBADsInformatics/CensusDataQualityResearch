@@ -20,7 +20,7 @@ from PIL import Image
 
 
 # Get app base URL
-BASE_URL = os.getenv('BASE_URL','/src/')
+BASE_URL = os.getenv('BASE_URL','/src')
 
 countries = ["Ethiopia", "Canada", "USA", "Ireland", "India", "Brazil", "Botswana", "Egypt", "South Africa", "Indonesia", "China", "Australia", "NewZealand", "Japan", "Mexico", "Argentina", "Chile"]
 species   = ["Cattle", "Sheep", "Goats", "Pigs", "Chickens"]
@@ -33,7 +33,7 @@ app.config["suppress_callback_exceptions"] = True
 app.title = "GBADs Informatics User Vizualizer"
 
 app.layout = html.Div(children=[
-    html.Img(src=os.environ.get("BASE_URL", "") + "src/images/logo.png", style={'width': '25%', 'display': 'inline-block', "align-items": "left" }),
+    html.Img(src=Image.open("./images/logo.png"), style={'width': '25%', 'display': 'inline-block', "align-items": "left" }),
     dcc.Tabs(id="tabs", value='genDataViewer', children=[
         dcc.Tab(label='General Data View', value='genDataViewer'),
         dcc.Tab(label='Polynomial Regression', value='polyRegress'),
@@ -1924,17 +1924,16 @@ def returnApp():
     """
     This function is used to create the app and return it to waitress in the docker container
     """
-    # If BASE_URL is set, use DispatcherMiddleware to serve the app from that path
-    if 'BASE_URL' in os.environ:
-        from werkzeug.middleware.dispatcher import DispatcherMiddleware
-        app.wsgi_app = DispatcherMiddleware(Flask('dummy_app'), {
-            BASE_URL: app.server
-        })
-        # Add redirect to new path
-        @app.wsgi_app.app.route('/')
-        def redirect_to_dashboard():
-            return redirect(BASE_URL)
-        return app.wsgi_app
+    # use DispatcherMiddleware to serve the app from that path
+    from werkzeug.middleware.dispatcher import DispatcherMiddleware
+    app.wsgi_app = DispatcherMiddleware(Flask('dummy_app'), {
+        BASE_URL: app.server
+    })
+    # Add redirect to new path
+    @app.wsgi_app.app.route('/')
+    def redirect_to_dashboard():
+        return redirect(BASE_URL)
+    return app.wsgi_app
 
     # If no BASE_URL is set, just return the app server
     return app.server
