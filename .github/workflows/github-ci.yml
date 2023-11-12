@@ -16,4 +16,4 @@ jobs:
     uses: GBADsInformatics/DevopsWorkflows/.github/workflows/aws.yml@main
     secrets: inherit
     with:
-      SERVICE_NAME: census-quality-dash-service
+      SERVICE_NAME: census-data-dash-service
