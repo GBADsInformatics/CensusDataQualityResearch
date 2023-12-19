@@ -21,7 +21,7 @@ from PIL import Image
 # Get app base URL
 BASE_URL = os.getenv('BASE_URL','/src')
 
-countries = ["Ethiopia", "Canada", "USA", "Ireland", "India", "Brazil", "Botswana", "Egypt", "South Africa", "Indonesia", "China", "Australia", "NewZealand", "Japan", "Mexico", "Argentina", "Chile", "Czechia"]
+countries = ["Ethiopia", "Canada", "USA", "Ireland", "India", "Brazil", "Botswana", "Egypt", "South Africa", "Indonesia", "China", "Australia", "NewZealand", "Japan", "Mexico", "Argentina", "Chile", "Czechia", "Slovakia", "Iran", "Morocco"]
 species   = ["Cattle", "Sheep", "Goats", "Pigs", "Chickens"]
 sources   = ['No Options Available']
 
