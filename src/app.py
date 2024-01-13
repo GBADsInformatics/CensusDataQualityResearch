@@ -1894,6 +1894,16 @@ def update_line_chart(specie, country):
     # Step 4: Get National data
     nationalData, nationalData_index_list, species = API_helpers.helperFunctions.getFormattedNationalData(country, specie)
 
+    # Deal with Poultry
+    if specie == "Poultry":
+        fao_data["species"] = "Poultry"
+        fao_data['population'] = pd.to_numeric(fao_data['population'], errors='coerce')
+        fao_data = fao_data.groupby(['year', 'species', 'source'])['population'].sum().reset_index()
+
+        woah_data["species"] = "Poultry"
+        woah_data['population'] = pd.to_numeric(woah_data['population'], errors='coerce')
+        woah_data = woah_data.groupby(['year', 'species', 'source'])['population'].sum().reset_index()
+
     # Build a master dataframe
     master_df = pd.concat([fao_data, woah_data, csv_data.iloc[csv_index_list], nationalData.iloc[nationalData_index_list]])
 
