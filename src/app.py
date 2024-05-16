@@ -39,14 +39,14 @@ species   = ["Cattle", "Sheep", "Goats", "Pigs", "Chickens"]
 sources   = ['No Options Available']
 
 #Build a Plotly graph around the data
-# app = Dash(__name__, requests_pathname_prefix=BASE_URL+'/') #Use in prod mode
-app = Dash(__name__,
-#   external_stylesheets=[
-#             # 'https://codepen.io/chriddyp/pen/bWLwgP.css',
-#             dbc.themes.BOOTSTRAP,
-#             dbc.icons.BOOTSTRAP
-#         ],         
-) #Use in dev mode
+app = Dash(__name__, requests_pathname_prefix=BASE_URL+'/') #Use in prod mode
+# app = Dash(__name__,
+# #   external_stylesheets=[
+# #             # 'https://codepen.io/chriddyp/pen/bWLwgP.css',
+# #             dbc.themes.BOOTSTRAP,
+# #             dbc.icons.BOOTSTRAP
+# #         ],         
+# ) #Use in dev mode
 app.config["suppress_callback_exceptions"] = True
 app.title = "GBADs Informatics User Vizualizer"
 
