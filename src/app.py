@@ -8,7 +8,8 @@ import API_helpers.fao as fao
 import API_helpers.woah as woah
 import API_helpers.helperFunctions
 import pandas as pd
-from dash import Dash, dcc, html, Input, Output, dash_table
+from dash import Dash, dcc, html, Input, Output, dash_table, State
+import dash_bootstrap_components as dbc
 import plotly.express as px
 import numpy as np
 from sklearn.preprocessing import PolynomialFeatures
@@ -17,6 +18,18 @@ import API_helpers.helperFunctions as helperFunctions
 import plotly.figure_factory as ff
 from flask import Flask, redirect
 from PIL import Image
+import json
+from API_helpers import newS3TicketLib as s3f
+from datetime import datetime
+from API_helpers import secure_rds as secure
+from API_helpers import rds_functions as rds
+import os
+import comments_section
+
+# Access AWS Credentials and establish session
+access, secret = s3f.get_keys()
+s3_resource = s3f.credentials_resource ( access, secret )
+s3_client = s3f.credentials_client ( access, secret )
 
 # Get app base URL
 BASE_URL = os.getenv('BASE_URL','/src')
@@ -26,8 +39,14 @@ species   = ["Cattle", "Sheep", "Goats", "Pigs", "Chickens"]
 sources   = ['No Options Available']
 
 #Build a Plotly graph around the data
-app = Dash(__name__, requests_pathname_prefix=BASE_URL+'/') #Use in prod mode
-# app = Dash(__name__) #Use in dev mode
+# app = Dash(__name__, requests_pathname_prefix=BASE_URL+'/') #Use in prod mode
+app = Dash(__name__,
+#   external_stylesheets=[
+#             # 'https://codepen.io/chriddyp/pen/bWLwgP.css',
+#             dbc.themes.BOOTSTRAP,
+#             dbc.icons.BOOTSTRAP
+#         ],         
+) #Use in dev mode
 app.config["suppress_callback_exceptions"] = True
 app.title = "GBADs Informatics User Vizualizer"
 
@@ -57,6 +76,9 @@ app.layout = html.Div(children=[
     ),
 
     html.Br(),
+
+    comments_section.comment_area,
+
 ])
 
 #Regular Functions
@@ -1946,6 +1968,108 @@ def update_line_chart(specie, country):
     )
 
     return fig
+
+
+############################## COMMENT CALLBACKS ##############################
+# comment table tabs
+@app.callback(
+        Output('comment-tabs-content', 'children'),
+        Input('country_checklist', 'value'),
+        Input('species_checklist', 'value'),
+        # Output('comments', 'children'),
+        [Input('comment-tabs', 'active_tab')]
+)
+def render_content(country, species, tab):
+    if tab == 'tab-0':
+
+        #get new comments
+        conn = secure.connect_public()
+        cur = conn.cursor()
+        fieldstring = "created,tablename,subject,message,name,email,ispublic,reviewer"
+        #change to not include time
+        querystring = f"dashboard='census' AND tablename LIKE '{country} {species}%'"
+        querystr = rds.setQuery ("gbads_comments", fieldstring, querystring, "")
+        comments = rds.execute ( cur, querystr )
+        conn.close()
+
+        child = []
+
+        for row in comments:
+            child.append(html.Div(children=[
+                html.H5(row[4] if row[6] == True else 'Anonymous', style=comments_section.commentHeading),
+                html.H6(row[1], style=comments_section.commentSubheading),
+                html.H6(row[0][:-9], style=comments_section.commentDate),
+                html.H6(row[2]),
+                html.H6(row[3]),
+            ],
+            style = comments_section.divBorder
+            ))
+            child.append(html.Br())
+        return dbc.Row(children=
+            [
+                html.Div(id='comments', children=child)
+            ],
+            style=comments_section.COMMENT_STYLE,
+        )
+    elif tab == 'tab-1':
+        return comments_section.comment_add
+
+# Comment table changing in add comment Tab
+@app.callback(
+    Output('comments-table','value'),
+    Input('country_checklist', 'value'),
+    Input('species_checklist', 'value'),
+)
+def update_comment_table(country, species):
+    return f'{country} {species}'
+
+# Comment Submition in add comment tab
+@app.callback(
+        Output('com', 'children'),
+        # Output('comments-button', 'n_clicks'),
+        Output('comments-subject', 'value'),
+        Output('comments-message', 'value'),
+        Output('comments-name', 'value'),
+        Output('comments-email', 'value'),
+        Output('comments-isPublic', 'value'),
+        Input('comments-button', 'n_clicks'),
+        State('comments-table', 'value'),
+        State('comments-subject', 'value'),
+        State('comments-message', 'value'),
+        State('comments-name', 'value'),
+        State('comments-email', 'value'),
+        State('comments-isPublic', 'value'),
+)
+def submit_comment(n_clicks, table, subject, message, name, email, isPublic):
+    if subject == '':
+        return f'Subject is required', subject, message, name, email, isPublic;
+    if message == '':
+        return f'Message is required', subject, message, name, email, isPublic;
+    if n_clicks > 0:
+        # create comment file
+        created = datetime.now()
+        comment = {
+            "created": f'{created}',
+            "dashboard": 'census',
+            "table": table,
+            "subject": subject,
+            "message": message,
+            "name": name,
+            "email": email,
+            "isPublic": True if isPublic == "Yes" else False,
+            "reviewer": ''
+        }
+        filename = f'{created}.json'
+        with open(filename, "w") as outfile:
+            json.dump(comment, outfile)
+        # upload comment file
+        ret = s3f.s3Upload ( s3_resource, 'gbads-comments', filename, f"underreview/{filename}" )
+        #delete comment file
+        os.remove(filename)
+        if ( ret == -1 ):
+            return f'Error: Unable to submit comment', '', '', '', '', 'No';
+        return f'Submitted Successfully', '', '', '', '', 'No';
+    return f'', '', '', '', '', 'No';
 
 if __name__ == '__main__':
     app.run_server(debug=True)
