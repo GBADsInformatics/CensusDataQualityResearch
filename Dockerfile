@@ -1,5 +1,5 @@
 # Base image - tried a few others, this one was the easiest and most resilient
-FROM python:3.10.0-slim-buster
+FROM python:3.10-slim-bookworm
 
 # Specify root directory in image
 WORKDIR /app/dash
