@@ -18,17 +18,16 @@ import plotly.figure_factory as ff
 from flask import Flask, redirect
 from PIL import Image
 
-
 # Get app base URL
 BASE_URL = os.getenv('BASE_URL','/src')
 
-countries = ["Ethiopia", "Canada", "USA", "Ireland", "India", "Brazil", "Botswana", "Egypt", "South Africa", "Indonesia", "China", "Australia", "NewZealand", "Japan", "Mexico", "Argentina", "Chile"]
+countries = ["Ethiopia", "Canada", "USA", "Ireland", "India", "Brazil", "Botswana", "Egypt", "South Africa", "Indonesia", "China", "Australia", "NewZealand", "Japan", "Mexico", "Argentina", "Chile", "Czechia", "Slovakia", "Iran", "Morocco"]
 species   = ["Cattle", "Sheep", "Goats", "Pigs", "Chickens"]
 sources   = ['No Options Available']
 
-
 #Build a Plotly graph around the data
-app = Dash(__name__, requests_pathname_prefix=BASE_URL+'/')
+app = Dash(__name__, requests_pathname_prefix=BASE_URL+'/') #Use in prod mode
+# app = Dash(__name__) #Use in dev mode
 app.config["suppress_callback_exceptions"] = True
 app.title = "GBADs Informatics User Vizualizer"
 
@@ -125,14 +124,12 @@ def render_content(tab):
     elif tab == 'genDataViewer':
         return html.Div([
             html.H1(children='Data Quality Comparison for FAOSTAT, WOAH, Census Data, and National Sources'),
-
             dcc.Graph(id='genDataViewerGraph'),
         ])
 
     elif tab == 'growthRates':
         specie = "Cattle"
         country = "Ethiopia"
-        species = []
 
         if country == "USA":
             fao_data = fao.get_data("United%20States%20of%20America", specie)
@@ -1626,24 +1623,46 @@ def updateFiveYearAvgHeader(specie, country):
     Output("species_checklist", "options"),
     Input("country_checklist", "value"))
 def update_species_checklist(country):
+    species = []
+
+    if country == "USA":
+        fao_data = fao.get_data("United%20States%20of%20America", "*")
+
+    elif country == None:
+        fao_data = fao.get_data(countries[0], "*")
+
+    else:
+        fao_data = fao.get_data(country, "*")
+
+    fao_data = fao.formatFAOData(fao_data)
+    species = fao_data["species"].tolist() # Add the species from the csv file to the list of species    
+
+
+    if country == "USA":
+        woah_data = woah.get_data("United%20States%20of%20America", "*")
+    else:
+        woah_data = woah.get_data(country, "*")
+
+    woah_data = woah.formatWoahData(woah_data)
+    species += woah_data["species"].tolist() # Add the species from the csv file to the list of species
 
     try:
         csv_data = pd.read_csv(f"censusData/{country}.csv")
-        species = csv_data["species"].tolist() # Add the species from the csv file to the list of species
-        species = list(dict.fromkeys(species))  # Remove duplicates from the list of species
+        species += csv_data["species"].tolist() # Add the species from the csv file to the list of species
 
     except:
         print("Error, count not find the correct csv file")
 
     try:
         nationalData = pd.read_csv(f"nationalData/{country}.csv")
-        species = nationalData["species"].tolist() # Add the species from the csv file to the list of species
-        species = list(dict.fromkeys(species))  # Remove duplicates from the list of species
+        species += nationalData["species"].tolist() # Add the species from the csv file to the list of species
 
     except:
         print("Error, count not find the correct csv file")
 
-    return species
+    species.sort()
+
+    return list(dict.fromkeys(species))  # Remove duplicates from the list of species
 
 
 @app.callback(
@@ -1875,6 +1894,16 @@ def update_line_chart(specie, country):
     # Step 4: Get National data
     nationalData, nationalData_index_list, species = API_helpers.helperFunctions.getFormattedNationalData(country, specie)
 
+    # Deal with Poultry
+    if specie == "Poultry":
+        fao_data["species"] = "Poultry"
+        fao_data['population'] = pd.to_numeric(fao_data['population'], errors='coerce')
+        fao_data = fao_data.groupby(['year', 'species', 'source'])['population'].sum().reset_index()
+
+        woah_data["species"] = "Poultry"
+        woah_data['population'] = pd.to_numeric(woah_data['population'], errors='coerce')
+        woah_data = woah_data.groupby(['year', 'species', 'source'])['population'].sum().reset_index()
+
     # Build a master dataframe
     master_df = pd.concat([fao_data, woah_data, csv_data.iloc[csv_index_list], nationalData.iloc[nationalData_index_list]])
 
@@ -1915,6 +1944,7 @@ def update_line_chart(specie, country):
         ),
         plot_bgcolor='white',
     )
+
     return fig
 
 if __name__ == '__main__':

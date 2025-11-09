@@ -5,6 +5,7 @@ from API_helpers.helperFunctions import str2frame
 
 def get_data(country, species):
     url = f"https://gbadske.org/api/GBADsLivestockPopulation/faostat?year=*&country={country}&species={species}&format=file"
+    # print("FAO request URL: ", url)
     response = requests.get(url)
     return response.text
 
